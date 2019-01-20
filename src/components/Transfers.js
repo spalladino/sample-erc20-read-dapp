@@ -43,7 +43,7 @@ export default class Transfers extends Component {
       .on('data', (event) => {
         this.setState(state => ({
           ...state,
-          transfers: [{ isNew: true, ...event }, ...state.transfers]
+          transfers: [event, ...state.transfers]
         }));
       })
       .on('changed', (event) => {
@@ -96,8 +96,7 @@ export default class Transfers extends Component {
           key={getLogId(transfer)} 
           transfer={transfer} 
           decimals={decimals}
-          symbol={symbol}
-          isNew={transfer.isNew} />
+          symbol={symbol} />
       )) }
     </div>)
   }
