@@ -8,6 +8,7 @@ export default class Transfers extends Component {
   state = {
     transfers: [],
     eventSub: null,
+    blockSub: null,
     loading: true
   };
 
@@ -15,13 +16,17 @@ export default class Transfers extends Component {
     const { contract } = this.props;
     
     // Load current block and subscribe to transfers starting from the next
-    const currentBlock = await getWeb3().eth.getBlockNumber();
-    this.subscribe(contract, currentBlock + 1);
-    
+    const blockNumber = await getWeb3().eth.getBlockNumber();
+    this.setState({ blockNumber });
+    this.subscribe(contract, blockNumber + 1);
+
+    // Subscribe to new block headers
+    this.subscribeBlockHeaders();
+      
     // Load all transfers from the past N blocks to seed the list
     const pastEvents = await contract.getPastEvents('Transfer', {
-      fromBlock: currentBlock - 1000, 
-      toBlock: currentBlock 
+      fromBlock: blockNumber - 1000, 
+      toBlock: blockNumber 
     });
 
     // Load them into state at the end
@@ -50,31 +55,43 @@ export default class Transfers extends Component {
         }))
       })
       .on('error', (error) => {
-        this.setState(state => ({
-          ...state,
-          error
-        }))
+        this.setState({ error })
       });
 
     // Save the subscription in state so we can later unsubscribe
     this.setState({ eventSub });
   }
 
+  subscribeBlockHeaders() {
+    const blockSub = getWeb3().eth.subscribe('newBlockHeaders')
+      .on('data', ({ number }) => {
+        if (number) {
+          this.setState({ blockNumber: number});
+        }
+      });  
+    this.setState({ blockSub });
+  }
+
   componentWillUnmount() {
     // Unsubscribe from the event upon unmount
-    const { eventSub } = this.state;
+    const { eventSub, blockSub } = this.state;
     if (eventSub) eventSub.unsubscribe();
+    if (blockSub) blockSub.unsubscribe();
   }
 
   render() {
-    const { error, loading, transfers } = this.state;
+    const { error, loading, transfers, blockNumber } = this.state;
     const { decimals, symbol } = this.props;
 
     if (loading) return "Loading...";
     if (error) return "Error retrieving transfers";
     
+    const confirmedTransfers = transfers.filter((transfer) => (
+      blockNumber - transfer.blockNumber > 12
+    ));
+
     return (<div className="Transfers">
-      { transfers.map(transfer => (
+      { confirmedTransfers.map(transfer => (
         <Transfer 
           key={getLogId(transfer)} 
           transfer={transfer} 
