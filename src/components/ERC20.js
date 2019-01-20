@@ -8,8 +8,7 @@ class ERC20 extends Component {
     name: null,
     symbol: null,
     decimals: null,
-    totalSupply: null,
-    loaded: false
+    totalSupply: null
   }
 
   async componentDidMount() {
@@ -21,19 +20,17 @@ class ERC20 extends Component {
       contract.methods.totalSupply().call(),
     ]);
 
-    this.setState({ name, symbol, decimals, totalSupply, loaded: true });
+    this.setState({ name, symbol, decimals, totalSupply });
   }
 
   render() {
-    if (!this.state.loaded) return "Loading...";
+    if (!this.state.totalSupply) return "Loading...";
     const { name, totalSupply, decimals, symbol } = this.state;
     const { contract } = this.props;
 
     return (
       <div className="ERC20">
-        <h1>
-          {name} Token
-        </h1>
+        <h1>{name} Token</h1>
         <div>
           Total supply of {formatValue(totalSupply, decimals)} {symbol}
         </div>
