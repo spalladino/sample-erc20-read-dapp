@@ -10,21 +10,37 @@ class App extends Component {
   state = {
     erc20: null,
     isMainnet: null,
+    error: null,
     loading: true
   }
 
   async componentDidMount() {
     const web3 = getWeb3();
-    const networkId = await web3.eth.net.getId();
-    const isMainnet = (networkId === 1);
-    this.setState({ isMainnet });
-
-    if (isMainnet) {
-      const erc20 = await ERC20Contract(getWeb3(), ERC20_ADDRESS);
-      this.setState({ erc20 });
-    }
-
+    await this.checkNetwork(web3);
+    await this.retrieveContract(web3);
     this.setState({ loading: false });
+  }
+
+  async checkNetwork(web3) {
+    try {
+      const networkId = await web3.eth.net.getId();
+      const isMainnet = (networkId === 1);
+      this.setState({ isMainnet });
+    } catch (error) {
+      console.error(error);
+      this.setState({ error: `Error connecting to network: ${error.message}` })
+    }
+  }
+
+  async retrieveContract(web3) {
+    if (!this.state.isMainnet) return;
+    try {
+      const erc20 = await ERC20Contract(web3, ERC20_ADDRESS);
+      this.setState({ erc20 });
+    } catch (error) {
+      console.error(error);
+      this.setState({ error: `Error retrieving contract: ${error.message}` })
+    }
   }
 
   render() {
@@ -36,9 +52,11 @@ class App extends Component {
   }
 
   getAppContent() {
-    const { loading, isMainnet, erc20 } = this.state;
+    const { loading, error, isMainnet, erc20 } = this.state;
 
-    if (loading) {
+    if (error) {
+      return (<div>{error}</div>);
+    } else if (loading) {
       return (<div>Connecting to network...</div>);
     } else if (!isMainnet) {
       return (<div>Please connect to Mainnet</div>);
