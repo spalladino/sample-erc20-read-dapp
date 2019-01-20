@@ -28,7 +28,7 @@ export default class Transfers extends Component {
     this.setState(state => ({
       ...state,
       loading: false,
-      transfers: [...state.transfers, ...pastEvents]
+      transfers: [...state.transfers, ...pastEvents.reverse()]
     }));
   }
 
